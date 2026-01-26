@@ -3,6 +3,8 @@ import cv2
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+from log_config import logger
+
 
 MODEL_PATH = "blaze_face_short_range.tflite"
 
@@ -84,11 +86,14 @@ while True:
 
                 if elapsed >= threshold:
                     current_state = candidate_state
+                    log_label = "PRESENT" if current_state else "AWAY"
+                    logger.info(f"Person's state changed to {log_label} at time {now}")
+                    
                     candidate_state = None
                     candidate_since = None
     
     label = "PRESENT" if current_state else "AWAY"
-
+    # logger.info(f"Current_state was {label} at {now}")
     cv2.putText(frame , label , (30,40) , cv2.FONT_HERSHEY_SIMPLEX , 1 , (255,255,255) , 2)
 
     cv2.imshow("MediaPipe Tasks Face Detection", frame)
