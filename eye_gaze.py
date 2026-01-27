@@ -18,6 +18,25 @@ iris_points = [469 , 471 , 474 , 476]
 476 = left_eye_right_corner
 '''
 
+
+def calc_eye_down_score(height  , top_eye , bottom_eye , centre_eye):
+    result = face_mesh.process(frame_rgb)
+    if result.multi_face_landmarks:
+        for FacialLandmarks in result.multi_face_landmarks:
+
+            pt_top_eye = FacialLandmarks.landmark[top_eye]
+            pt_bottom_eye = FacialLandmarks.landmark[bottom_eye]
+            pt_centre_eye = FacialLandmarks.landmark[centre_eye]
+
+            iris_offset = (   int(pt_centre_eye.y * height)   ) - (   int(pt_top_eye.y * height)  )
+            eye_height =  (  int(pt_bottom_eye.y * height)  ) - (  int(pt_top_eye.y * height) )
+
+            eye_down_score = iris_offset / eye_height
+            return eye_down_score
+
+# Eye down Score = iris_offset / eye_height 
+# iris_offset = iris_y - top_y
+
 while True:
     _ , frame = capture.read()
 
@@ -26,21 +45,21 @@ while True:
     frame_rgb = cv.cvtColor(frame , cv.COLOR_BGR2RGB)
     # frame_flipped = cv.flip(frame , 1)
 
-    result = face_mesh.process(frame_rgb)
+    left_eye_score = calc_eye_down_score(height , 475 , 477 , 473)
+    right_eye_score = calc_eye_down_score(height , 470 , 472 , 468 )
 
-    if result.multi_face_landmarks:
-        for FacialLandmarks in result.multi_face_landmarks:
+    if left_eye_score is not None and right_eye_score is not None:
+        final_eye_score = (left_eye_score + right_eye_score) / 2
 
-            for i in iris_points:
-                pt_i = FacialLandmarks.landmark[i]
+        if final_eye_score > 0.65:
+            cv.putText(frame , "Distracted Eyes" , (20 , 110) , cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
 
-                x = pt_i.x
-                y = pt_i.y
+        else:
+            cv.putText(frame , "Attentive Eyes" , (20 , 110) , cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
 
-                x_cordinate = int(x*width)
-                y_cordinate = int(y*height)
-
-                cv.circle(frame , (x_cordinate , y_cordinate) , 2, (0,255,255) , -1)
+    # print(left_eye_score)
+    # print(right_eye_score)
+    # print(final_eye_score)
 
     cv.imshow("My webcam" , frame)
     if (cv.waitKey(1) == ord('q')):
