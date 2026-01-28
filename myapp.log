@@ -13,3 +13,6 @@ INFO:log_config:Person's state changed to AWAY at time 2026-01-26 15:06:23.81494
 INFO:log_config:Person's state changed to PRESENT at time 2026-01-26 15:06:26.855570
 INFO:log_config:Person's state changed to AWAY at time 2026-01-26 15:06:28.904972
 INFO:log_config:Person's state changed to PRESENT at time 2026-01-26 15:06:30.326901
+INFO:log_config:Person's state changed to PRESENT at time 2026-01-28 19:54:45.508011
+INFO:log_config:Person's state changed to AWAY at time 2026-01-28 19:54:56.867905
+INFO:log_config:Person's state changed to PRESENT at time 2026-01-28 19:54:58.641703

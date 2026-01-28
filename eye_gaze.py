@@ -10,6 +10,7 @@ face_mesh = mp_faceMesh.FaceMesh(refine_landmarks = True)
 iris_points_left_eye = [474, 475 , 476 , 477]
 iris_points_right_eye = [469 , 470 , 471 , 472]
 
+recalibrate_warning = "Press C to Recalibrate"
 '''
 469 = right_eye_left_corner
 468 = right_eye_centre
@@ -18,6 +19,7 @@ iris_points_right_eye = [469 , 470 , 471 , 472]
 474 = left_eye_left_corner
 476 = left_eye_right_corner
 '''
+ref_eye_down_score = None
 
 
 def center_eye_avg(iris_points : list):
@@ -57,31 +59,47 @@ while True:
 
     height , width , channel = frame.shape
 
+    cv.putText(frame , recalibrate_warning , (30 , 180) ,cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2 )
     frame_rgb = cv.cvtColor(frame , cv.COLOR_BGR2RGB)
     # frame_flipped = cv.flip(frame , 1)
     result = face_mesh.process(frame_rgb)
 
+    key = cv.waitKey(1) & 0xFF
     left_eye_y_co_centre = center_eye_avg(iris_points_left_eye)
     right_eye_y_co_centre = center_eye_avg(iris_points_right_eye)
-
     left_eye_score = calc_eye_down_score(height , 159 , 145 , left_eye_y_co_centre)
     right_eye_score = calc_eye_down_score(height , 386 , 374 , right_eye_y_co_centre )
 
-    if left_eye_score is not None and right_eye_score is not None:
-        final_eye_score = (left_eye_score + right_eye_score) / 2
-        print(final_eye_score)
-        if final_eye_score > 0.68:
-            cv.putText(frame , "Distracted Eyes" , (20 , 110) , cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+    if key == ord('c') or key == ord("C"):
 
+
+        
+
+        if left_eye_score is not None and right_eye_score is not None:
+            ref_eye_down_score = ((calc_eye_down_score(height , 159 , 145 , left_eye_y_co_centre)) + (calc_eye_down_score(height , 386 , 374 , right_eye_y_co_centre )))/2
+            recalibrate_warning = ""
+
+    # if left_eye_score is not None and right_eye_score is not None:
+    if ref_eye_down_score is not None and left_eye_score is not None and right_eye_score is not None:
+        final_eye_score = (left_eye_score + right_eye_score) / 2
+        callibrated_eye_down_score = final_eye_score - ref_eye_down_score
+        print(callibrated_eye_down_score)
+
+        if  callibrated_eye_down_score < -0.18: 
+            cv.putText(frame, "Distracted Eyes", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+            print("Distracted Eyes")
         else:
-            cv.putText(frame , "Attentive Eyes" , (20 , 110) , cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+            cv.putText(frame, "Attentive Eyes", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+            print("attentive Eyes")
+    else:
+        cv.putText(frame, "Press C to calibrate", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
 
     # print(left_eye_score)
     # print(right_eye_score)
     # print(final_eye_score)
 
     cv.imshow("My webcam" , frame)
-    if (cv.waitKey(1) == ord('q')):
+    if (key == ord('q')):
         break
 
 
