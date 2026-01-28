@@ -20,7 +20,7 @@ recalibrate_warning = "Press C to Recalibrate"
 476 = left_eye_right_corner
 '''
 ref_eye_down_score = None
-
+eye_smooth = 0
 
 def center_eye_avg(iris_points : list):
     sum_y = 0
@@ -70,10 +70,11 @@ while True:
     left_eye_score = calc_eye_down_score(height , 159 , 145 , left_eye_y_co_centre)
     right_eye_score = calc_eye_down_score(height , 386 , 374 , right_eye_y_co_centre )
 
-    if key == ord('c') or key == ord("C"):
+    if key == ord('c') or key == ord('C'):
 
 
-        
+        eye_smooth = 0
+
 
         if left_eye_score is not None and right_eye_score is not None:
             ref_eye_down_score = ((calc_eye_down_score(height , 159 , 145 , left_eye_y_co_centre)) + (calc_eye_down_score(height , 386 , 374 , right_eye_y_co_centre )))/2
@@ -83,9 +84,11 @@ while True:
     if ref_eye_down_score is not None and left_eye_score is not None and right_eye_score is not None:
         final_eye_score = (left_eye_score + right_eye_score) / 2
         callibrated_eye_down_score = final_eye_score - ref_eye_down_score
+        eye_smooth = 0.85 * eye_smooth + 0.15*callibrated_eye_down_score
         print(callibrated_eye_down_score)
+        print(eye_smooth)
 
-        if  callibrated_eye_down_score < -0.18: 
+        if  eye_smooth < -0.18: 
             cv.putText(frame, "Distracted Eyes", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
             print("Distracted Eyes")
         else:
