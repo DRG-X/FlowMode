@@ -29,7 +29,7 @@ candidate_state = None
 candidate_since = None
 
 
-present_to_away_time = 1
+present_to_away_time = 2
 away_to_present_time = 0.7
 
 

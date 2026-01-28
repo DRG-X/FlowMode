@@ -1,7 +1,7 @@
 import cv2 
 import mediapipe as mp
 import numpy as np 
-
+from datetime import datetime
 
 capture = cv2.VideoCapture(0)
 
@@ -29,7 +29,16 @@ pitch_current = None
 
 # calibration is to set the current pitch and yaw as baseline and then substract from it later.
 
+distracted_to_attentive_time = 0.5
+attentive_to_distracted_time = 1
+
+current_state = False
+candidate_state = None
+candidate_since = None
+
+
 while True:
+    now = datetime.now()
     _ , frame = capture.read()
     height , width , _ = frame.shape
     # print(f"Height = {height} , width = {width}")
@@ -108,11 +117,41 @@ while True:
                 cv2.putText(flipped_frame, f"Pitch: {pitch:.1f}", (20, 70),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
-                attentive = (abs(yaw_corr) < 20) and (abs(pitch_corr) < 20)
-                status = "ATTENTIVE ✅" if attentive else "DISTRACTED ❌"
+                # detector suggestion for this frame
+                detected_state = (abs(yaw_corr) < 20) and (abs(pitch_corr) < 20)  # True = attentive, False = distracted
 
+                # --- Debounce state switching like your face detection ---
+                if detected_state == current_state:
+                    candidate_state = None
+                    candidate_since = None
+                else:
+                    if candidate_state is None:
+                        candidate_state = detected_state
+                        candidate_since = now
+                    else:
+                        if detected_state != candidate_state:
+                            # noisy flip, restart candidate
+                            candidate_state = None
+                            candidate_since = None
+                        else:
+                            elapsed = (now - candidate_since).total_seconds()
+
+                            # choose threshold based on direction
+                            if current_state is True and candidate_state is False:
+                                threshold = attentive_to_distracted_time
+                            else:
+                                threshold = distracted_to_attentive_time
+
+                            if elapsed >= threshold:
+                                current_state = candidate_state
+                                candidate_state = None
+                                candidate_since = None
+
+                # show debounced state
+                status = "ATTENTIVE ✅" if current_state else "DISTRACTED ❌"
                 cv2.putText(flipped_frame, status, (20, 110),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+
 
 
     cv2.putText(flipped_frame , calibrate_warning , (30 , 180) , cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
