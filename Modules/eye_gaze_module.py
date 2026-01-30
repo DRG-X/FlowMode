@@ -1,0 +1,111 @@
+import cv2 as cv
+import mediapipe as mp
+import numpy as np 
+
+
+
+mp_faceMesh = mp.solutions.face_mesh
+face_mesh = mp_faceMesh.FaceMesh(refine_landmarks = True)
+
+iris_points_left_eye = [474, 475 , 476 , 477]
+iris_points_right_eye = [469 , 470 , 471 , 472]
+
+recalibrate_warning = "Press C to Recalibrate"
+
+'''
+469 = right_eye_left_corner
+468 = right_eye_centre
+471 = right_eye_right_corner
+473 = left_eye_centre
+474 = left_eye_left_corner
+476 = left_eye_right_corner
+'''
+ref_eye_down_score = None
+eye_smooth = 0
+
+result = None
+
+
+
+def center_eye_avg(iris_points : list):
+    sum_y = 0
+    if result.multi_face_landmarks:
+        for FacialLandmarks in result.multi_face_landmarks:
+            for i in iris_points:
+                pt_i_y = (FacialLandmarks.landmark[i].y)
+                sum_y += pt_i_y
+
+            center_eye_avg_pt = sum_y /4
+            # x_cor = int(center_eye_avg_pt.x * width)
+            # y_cor = int(center_eye_avg.y * height)
+            return center_eye_avg_pt # already a y co-ordinate
+        
+
+def calc_eye_down_score(height  , top_eye , bottom_eye , centre_eye):
+    
+    if result.multi_face_landmarks:
+        for FacialLandmarks in result.multi_face_landmarks:
+
+            pt_top_eye = FacialLandmarks.landmark[int(top_eye)]
+            pt_bottom_eye = FacialLandmarks.landmark[int(bottom_eye)]
+            
+
+            iris_offset = (   (centre_eye * height)   ) - (   (pt_top_eye.y * height)  )
+            eye_height =  (  (pt_bottom_eye.y * height)  ) - (  (pt_top_eye.y * height) )
+
+            if eye_height != 0 :
+                eye_down_score = iris_offset / eye_height
+                return eye_down_score
+
+# Eye down Score = iris_offset / eye_height 
+# iris_offset = iris_y - top_y
+
+
+def update(frame , key , now ):
+    global ref_eye_down_score, eye_smooth, recalibrate_warning, result
+
+    height , width , channel = frame.shape
+    frame_rgb = cv.cvtColor(frame , cv.COLOR_BGR2RGB)
+    result = face_mesh.process(frame_rgb)
+
+    if not result.multi_face_landmarks:
+        return "NO_FACE"
+        
+    
+    left_eye_y_co_centre = center_eye_avg(iris_points_left_eye)
+    right_eye_y_co_centre = center_eye_avg(iris_points_right_eye)
+    if left_eye_y_co_centre is None or right_eye_y_co_centre is None:
+        return "NO_EYE_CENTER"
+    left_eye_score = calc_eye_down_score(height , 159 , 145 , left_eye_y_co_centre)
+    right_eye_score = calc_eye_down_score(height , 386 , 374 , right_eye_y_co_centre )
+
+    if key == ord('c') or key == ord('C'):
+
+
+        eye_smooth = 0
+
+
+        if left_eye_score is not None and right_eye_score is not None:
+            ref_eye_down_score = ((calc_eye_down_score(height , 159 , 145 , left_eye_y_co_centre)) + (calc_eye_down_score(height , 386 , 374 , right_eye_y_co_centre )))/2
+            recalibrate_warning = ""
+
+    # if left_eye_score is not None and right_eye_score is not None:
+    if ref_eye_down_score is not None and left_eye_score is not None and right_eye_score is not None:
+        final_eye_score = (left_eye_score + right_eye_score) / 2
+        callibrated_eye_down_score = final_eye_score - ref_eye_down_score
+        eye_smooth = 0.85 * eye_smooth + 0.15*callibrated_eye_down_score
+        print(callibrated_eye_down_score)
+        print(eye_smooth)
+
+        if  eye_smooth < -0.18: 
+            cv.putText(frame, "Distracted Eyes", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+            return("Distracted Eyes")
+        else:
+            cv.putText(frame, "Attentive Eyes", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+            return("attentive Eyes")
+    else:
+        cv.putText(frame, "Press C to calibrate", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+    return "NOT_CALIBRATED"
+    # print(left_eye_score)
+    # print(right_eye_score)
+    # print(final_eye_score)
