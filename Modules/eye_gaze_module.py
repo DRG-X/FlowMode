@@ -1,7 +1,13 @@
 import cv2 as cv
 import mediapipe as mp
 import numpy as np 
+import logging 
+from datetime import datetime
 
+import log_config
+
+debug_log = log_config.setup_logger('microscope.log' , logging.INFO)
+stats_log = log_config.setup_logger('dashboard.log' , logging.INFO)
 
 
 mp_faceMesh = mp.solutions.face_mesh
@@ -38,6 +44,7 @@ def center_eye_avg(iris_points : list):
             center_eye_avg_pt = sum_y /4
             # x_cor = int(center_eye_avg_pt.x * width)
             # y_cor = int(center_eye_avg.y * height)
+            debug_log.info(f"The averaged out centere eye point was {center_eye_avg_pt}")
             return center_eye_avg_pt # already a y co-ordinate
         
 
@@ -55,6 +62,7 @@ def calc_eye_down_score(height  , top_eye , bottom_eye , centre_eye):
 
             if eye_height != 0 :
                 eye_down_score = iris_offset / eye_height
+                debug_log.info(f"calculated eye down score was {eye_down_score}")
                 return eye_down_score
 
 # Eye down Score = iris_offset / eye_height 
@@ -99,9 +107,13 @@ def update(frame , key , now ):
 
         if  eye_smooth < -0.18: 
             cv.putText(frame, "Distracted Eyes", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+            debug_log.info(f"Distracted eyes at {now}")
+            stats_log.info(f"Distracted eyes at {now}")
             return("Distracted Eyes")
         else:
             cv.putText(frame, "Attentive Eyes", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+            debug_log.info(f"Attentive Eyes at {now}")
+            stats_log.info(f"Attentive Eyes at {now}")
             return("attentive Eyes")
     else:
         cv.putText(frame, "Press C to calibrate", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)

@@ -3,12 +3,13 @@ import cv2
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from log_config import logger
-
+import logging 
+import Modules.log_config as log_config
 
 MODEL_PATH = "blaze_face_short_range.tflite"
 
-
+debug_log = log_config.setup_logger('microscope.log' , logging.INFO)
+stats_log = log_config.setup_logger('dashboard.log' , logging.INFO)
 
 BaseOptions = mp.tasks.BaseOptions
 FaceDetector = mp.tasks.vision.FaceDetector
@@ -87,7 +88,8 @@ while True:
                 if elapsed >= threshold:
                     current_state = candidate_state
                     log_label = "PRESENT" if current_state else "AWAY"
-                    logger.info(f"Person's state changed to {log_label} at time {now}")
+                    debug_log.info(f"Person's state changed to {log_label} at time {now}")
+                    stats_log.info(f"Person's state changed to {log_label} at time {now}")
                     
                     candidate_state = None
                     candidate_since = None

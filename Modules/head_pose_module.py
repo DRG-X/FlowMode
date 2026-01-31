@@ -2,12 +2,15 @@ import cv2 as cv
 import mediapipe as mp 
 import numpy as np 
 from datetime import datetime
+import logging
+import log_config
 
 mp_faceMesh = mp.solutions.face_mesh
 face_mesh = mp_faceMesh.FaceMesh()
 
 landmark_points = [1, 152 , 33 , 263 , 61 , 291]
 calibrate_warning = "Please Press C to calibrate"
+
 '''
 1 = nose tip 
 152 = chin 
@@ -32,6 +35,8 @@ current_state = False
 candidate_state = None
 candidate_since = None
 
+debug_log = log_config.setup_logger('microscope.log' , logging.INFO)
+stats_log = log_config.setup_logger('dashboard.log' , logging.INFO)
 
 def update(frame , now , key):
     global yaw_current , pitch_current , current_state , candidate_state , candidate_since , calibrate_warning
@@ -94,6 +99,7 @@ def update(frame , now , key):
                     pitch_current = pitch
                     yaw_current = yaw
                     calibrate_warning = " "
+                    debug_log.info(f"Head Pose Calibration done Sucessfully with pitch: {pitch_current} and yaw: {yaw_current}")
 
                 if yaw_current is None:
                     yaw_current = yaw
@@ -101,8 +107,7 @@ def update(frame , now , key):
 
                 yaw_corr = yaw - yaw_current
                 pitch_corr = pitch - pitch_current
-
-            
+                debug_log.info(f"yaw_corr: {yaw_corr} and pitch_corr is {pitch_corr}")
 
                 # detector suggestion for this frame
                 detected_state = (abs(yaw_corr) < 20) and (abs(pitch_corr) < 20)  # True = attentive, False = distracted
@@ -135,7 +140,7 @@ def update(frame , now , key):
                                 candidate_since = None
 
                 # show debounced state
-                
+                stats_log.info(f"Current State is {current_state}")
                 return "ATTENTIVE" if current_state else "DISTRACTED"
     return "NO_FACE"         
 

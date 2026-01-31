@@ -1,6 +1,11 @@
 from datetime import datetime
 import cv2 as cv
 import mediapipe as mp
+import logging
+import log_config
+
+debug_log = log_config.setup_logger('microscope.log' , logging.INFO)
+stats_log = log_config.setup_logger('dashboard.log' , logging.INFO)
 
 MODEL_PATH = "blaze_face_short_range.tflite"
 
@@ -32,7 +37,6 @@ def update(frame , now) -> str:
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
 
     result = detector.detect(mp_image)
-    # print(result)
     if result.detections:
         detected_state = True  # Detected_state = True if face is detected and false if not detected
         for detection in result.detections:
@@ -74,6 +78,8 @@ def update(frame , now) -> str:
                 if elapsed >= threshold:
                     current_state = candidate_state
                     log_label = "PRESENT" if current_state else "AWAY"
+                    debug_log.info(f"Person's state changed to {log_label} at time {now}")
+                    stats_log.info(f"Person's state changed to {log_label} at time {now}")
                     candidate_state = None
                     candidate_since = None
                     return log_label
