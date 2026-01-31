@@ -36,7 +36,7 @@ candidate_state = None
 candidate_since = None
 
 debug_log = log_config.setup_logger('microscope.log' , logging.INFO)
-stats_log = log_config.setup_logger('dashboard.log' , logging.INFO)
+
 
 def update(frame , now , key):
     global yaw_current , pitch_current , current_state , candidate_state , candidate_since , calibrate_warning
@@ -140,7 +140,7 @@ def update(frame , now , key):
                                 candidate_since = None
 
                 # show debounced state
-                stats_log.info(f"Current State is {current_state}")
+
                 return "ATTENTIVE" if current_state else "DISTRACTED"
     return "NO_FACE"         
 

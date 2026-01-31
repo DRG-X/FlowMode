@@ -39,16 +39,16 @@ while True:
                 # some logging here 
                 # some maths here to find the time user was productive and shit
             else:
-                debug_log.info(f"Doing Productive work at:{now}")
-                stats_log.info(f"Doing Productive work at:{now}")
+                debug_log.info(f"Doing UNProductive work at:{now}")
+                stats_log.info(f"Doing UNProductive work at:{now}")
                 continue
         else:
-            debug_log.info(f"Doing Productive work at:{now}")
-            stats_log.info(f"Doing Productive work at:{now}")
+            debug_log.info(f"Doing UNProductive work at:{now}")
+            stats_log.info(f"Doing UNProductive work at:{now}")
             continue
     else:
-        debug_log.info(f"Doing Productive work at:{now}")
-        stats_log.info(f"Doing Productive work at:{now}")
+        debug_log.info(f"Doing UNProductive work at:{now}")
+        stats_log.info(f"Doing UNProductive work at:{now}")
         continue
     
     if ( key == ord('q')):

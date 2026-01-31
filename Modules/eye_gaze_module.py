@@ -7,7 +7,7 @@ from datetime import datetime
 import log_config
 
 debug_log = log_config.setup_logger('microscope.log' , logging.INFO)
-stats_log = log_config.setup_logger('dashboard.log' , logging.INFO)
+
 
 
 mp_faceMesh = mp.solutions.face_mesh
@@ -108,12 +108,12 @@ def update(frame , key , now ):
         if  eye_smooth < -0.18: 
             cv.putText(frame, "Distracted Eyes", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
             debug_log.info(f"Distracted eyes at {now}")
-            stats_log.info(f"Distracted eyes at {now}")
+
             return("Distracted Eyes")
         else:
             cv.putText(frame, "Attentive Eyes", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
             debug_log.info(f"Attentive Eyes at {now}")
-            stats_log.info(f"Attentive Eyes at {now}")
+
             return("attentive Eyes")
     else:
         cv.putText(frame, "Press C to calibrate", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
