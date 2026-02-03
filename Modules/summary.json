@@ -1,10 +1,10 @@
 {
-  "session_start": "2026-01-31 20:20:58",
-  "session_end": "2026-01-31 20:22:08",
-  "total_seconds": 69,
-  "attentive_seconds": 59,
-  "distracted_seconds": 9,
+  "session_start": "2026-02-01 16:58:21",
+  "session_end": "2026-02-01 16:59:01",
+  "total_seconds": 38,
+  "attentive_seconds": 32,
+  "distracted_seconds": 5,
   "away_seconds": 0,
-  "focus_percent": 85.36,
+  "focus_percent": 84.37,
   "csv_path": "dashboard.csv"
 }

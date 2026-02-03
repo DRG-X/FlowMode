@@ -102,8 +102,8 @@ def update(frame , key , now ):
         final_eye_score = (left_eye_score + right_eye_score) / 2
         callibrated_eye_down_score = final_eye_score - ref_eye_down_score
         eye_smooth = 0.85 * eye_smooth + 0.15*callibrated_eye_down_score
-        print(callibrated_eye_down_score)
-        print(eye_smooth)
+        # print(callibrated_eye_down_score)
+        # print(eye_smooth)
 
         if  eye_smooth < -0.18: 
             cv.putText(frame, "Distracted Eyes", (20, 110), cv.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)

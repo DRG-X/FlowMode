@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 PROJECT_ROOT = Path(".")
-MAIN_FILE = PROJECT_ROOT / "maintwo.py"
+MAIN_FILE = PROJECT_ROOT / "mainthree.py"
 
 CONTROL_FILE = PROJECT_ROOT / "control.json"
 STATUS_FILE = PROJECT_ROOT / "status.json"

@@ -245,13 +245,13 @@ while True:
         # -----------------------------
         head_pose_label = head_pose_module.update(frame, now, key)
 
-        if "ATTENTIVE" in head_pose_label:
+        if head_pose_label.strip().upper() == "ATTENTIVE":
             # -----------------------------
             # 3) EYE GAZE
             # -----------------------------
             eye_gaze_label = eye_gaze_module.update(frame, key, now)
 
-            if "attentive" in eye_gaze_label.lower():
+            if eye_gaze_label == "attentive Eyes":
                 final_state = "ATTENTIVE"
             else:
                 final_state = "DISTRACTED"

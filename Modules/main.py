@@ -33,12 +33,16 @@ while True:
         if head_pose_label == "ATTENTIVE":
             eye_gaze_label = eye_gaze_module.update(frame , key , now)
             if eye_gaze_label == "attentive Eyes":
-                print("User is really active and doing some productive work")
+                # print("User is really active and doing some productive work")
+                cv.putText(flipped_frame , f"Productive" , (20,40) , cv.FONT_HERSHEY_SIMPLEX , 0.7 , (255,255,255) , 2)
+                print("PRODUCTIVE")
                 debug_log.info(f"Doing Productive work at:{now}")
                 stats_log.info(f"Doing Productive work at:{now}")
                 # some logging here 
-                # some maths here to find the time user was productive and shit
+                # some math
+                # s here to find the time user was productive and shit
             else:
+                print(".")
                 debug_log.info(f"Doing UNProductive work at:{now}")
                 stats_log.info(f"Doing UNProductive work at:{now}")
                 continue

@@ -29,7 +29,7 @@ pitch_current = None
 # calibration is to set the current pitch and yaw as baseline and then substract from it later.
 
 distracted_to_attentive_time = 0.5
-attentive_to_distracted_time = 1
+attentive_to_distracted_time = 0.35
 
 current_state = False
 candidate_state = None
@@ -110,7 +110,7 @@ def update(frame , now , key):
                 debug_log.info(f"yaw_corr: {yaw_corr} and pitch_corr is {pitch_corr}")
 
                 # detector suggestion for this frame
-                detected_state = (abs(yaw_corr) < 20) and (abs(pitch_corr) < 20)  # True = attentive, False = distracted
+                detected_state = (abs(yaw_corr) < 5) and (abs(pitch_corr) < 5)  # True = attentive, False = distracted
 
                 # --- Debounce state switching like your face detection ---
                 if detected_state == current_state:
