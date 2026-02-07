@@ -1,0 +1,4 @@
+session_start,session_end,total_duration_seconds,total_duration_formatted,attentive_seconds,attentive_time_formatted,distracted_seconds,distracted_time_formatted,attentiveness_score,longest_attentive_period_seconds,longest_attentive_period_formatted,longest_distracted_period_seconds,longest_distracted_period_formatted,away_seconds,away_formatted,head_distracted_seconds,head_distracted_formatted,attentive_formatted,eyes_distracted_seconds,eyes_distracted_formatted
+2026-02-08 00:19:13,2026-02-08 00:19:50,37.6,00:00:37,22.64,00:00:22,14.96,00:00:14,60.21,3.5,00:00:03,2.27,00:00:02,1.2,00:00:01,6.54,00:00:06,00:00:22,7.23,00:00:07
+2026-02-08 00:45:03,2026-02-08 00:45:51,48.31,00:00:48,33.03,00:00:33,15.27,00:00:15,68.38,16.03,00:00:16,7.65,00:00:07,1.2,00:00:01,12.48,00:00:12,00:00:33,1.6,00:00:01
+2026-02-08 00:56:21,2026-02-08 00:56:54,33.1,00:00:33,22.01,00:00:22,11.09,00:00:11,66.5,11.94,00:00:11,2.12,00:00:02,1.11,00:00:01,4.81,00:00:04,00:00:22,5.17,00:00:05

@@ -1,7 +1,7 @@
 """
-Productivity Monitoring System with Session Analytics
+Productivity Monitoring System with Session Analytics (Streamlit Version)
 Detects user attention based on face presence, head pose, and eye gaze.
-Tracks session statistics and exports to CSV.
+Optimized for Streamlit UI integration.
 
 Author: Senior Developer
 Date: 2026-02-08
@@ -10,13 +10,15 @@ Date: 2026-02-08
 import cv2
 import mediapipe as mp
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
 from typing import Optional, Tuple, Dict
 import sys
 import csv
 import os
 from collections import defaultdict
+import threading
+import time
 
 # Try to import logging config, but make it optional
 try:
@@ -24,7 +26,6 @@ try:
     HAS_LOG_CONFIG = True
 except ImportError:
     HAS_LOG_CONFIG = False
-    print("Warning: Modules.log_config not found. Using basic logging.")
 
 
 class SessionAnalytics:
@@ -44,6 +45,9 @@ class SessionAnalytics:
         # Detailed state history for analysis
         self.state_history = []
         
+        # Timeline for time-series graph (state at each timestamp)
+        self.timeline = []
+        
         # Longest continuous periods
         self.longest_attentive_period = 0.0
         self.longest_distracted_period = 0.0
@@ -53,6 +57,14 @@ class SessionAnalytics:
         # Frame counter for sampling
         self.total_frames = 0
         self.attentive_frames = 0
+    
+    def record_timeline_point(self):
+        """Record current state for time-series visualization."""
+        self.timeline.append({
+            'timestamp': datetime.now(),
+            'state': self.current_state,
+            'is_attentive': self.current_state == "ATTENTIVE"
+        })
     
     def update_state(self, new_state: str):
         """Update the current state and track durations."""
@@ -148,75 +160,31 @@ class SessionAnalytics:
         secs = int(seconds % 60)
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
     
-    def print_summary(self):
-        """Print a comprehensive session summary to console."""
-        print("\n" + "=" * 70)
-        print("SESSION SUMMARY".center(70))
-        print("=" * 70)
-        
-        # Session info
-        print(f"\nSession Start: {self.session_start.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Session End:   {self.session_end.strftime('%Y-%m-%d %H:%M:%S')}")
-        
+    def get_summary_dict(self) -> Dict:
+        """Get session summary as a dictionary for Streamlit display."""
         total_seconds = self.get_total_duration()
-        print(f"Total Duration: {self.format_duration(total_seconds)}")
-        
-        print("\n" + "-" * 70)
-        print("ATTENTION METRICS".center(70))
-        print("-" * 70)
-        
-        # Main metrics
         attentive_seconds = self.get_attentive_time()
         distracted_seconds = self.get_distracted_time()
-        
-        print(f"\n{'Metric':<35} {'Time':<15} {'Percentage':<15}")
-        print("-" * 70)
-        
-        attentive_pct = (attentive_seconds / total_seconds * 100) if total_seconds > 0 else 0
-        distracted_pct = (distracted_seconds / total_seconds * 100) if total_seconds > 0 else 0
-        
-        print(f"{'Attentive Time':<35} {self.format_duration(attentive_seconds):<15} {attentive_pct:>6.2f}%")
-        print(f"{'Distracted Time':<35} {self.format_duration(distracted_seconds):<15} {distracted_pct:>6.2f}%")
-        
-        # Attentiveness score
         score = self.get_attentiveness_score()
-        print(f"\n{'ATTENTIVENESS SCORE:':<35} {score:>6.2f}%")
         
-        # State breakdown
-        print("\n" + "-" * 70)
-        print("DETAILED BREAKDOWN".center(70))
-        print("-" * 70)
-        
-        breakdown = self.get_breakdown_by_state()
-        print(f"\n{'State':<25} {'Time':<15} {'Percentage':<15}")
-        print("-" * 70)
-        
-        for state, duration in sorted(breakdown.items(), key=lambda x: x[1], reverse=True):
-            pct = (duration / total_seconds * 100) if total_seconds > 0 else 0
-            print(f"{state:<25} {self.format_duration(duration):<15} {pct:>6.2f}%")
-        
-        # Longest periods
-        print("\n" + "-" * 70)
-        print("FOCUS INSIGHTS".center(70))
-        print("-" * 70)
-        
-        print(f"\nLongest Attentive Period:   {self.format_duration(self.longest_attentive_period)}")
-        print(f"Longest Distracted Period:  {self.format_duration(self.longest_distracted_period)}")
-        
-        # Additional insights
-        if len(self.state_history) > 1:
-            # Calculate state transitions
-            transitions = len([h for h in self.state_history if h['state'] != 'AWAY'])
-            print(f"Number of State Changes:    {transitions}")
-            
-            # Average session metrics
-            if attentive_seconds > 0:
-                attentive_periods = [h for h in self.state_history if h['state'] == 'ATTENTIVE']
-                if attentive_periods:
-                    avg_attentive = sum(h['duration'] for h in attentive_periods) / len(attentive_periods)
-                    print(f"Average Attentive Period:   {self.format_duration(avg_attentive)}")
-        
-        print("\n" + "=" * 70 + "\n")
+        return {
+            'session_start': self.session_start,
+            'session_end': self.session_end,
+            'total_duration_seconds': total_seconds,
+            'total_duration_formatted': self.format_duration(total_seconds),
+            'attentive_seconds': attentive_seconds,
+            'attentive_formatted': self.format_duration(attentive_seconds),
+            'distracted_seconds': distracted_seconds,
+            'distracted_formatted': self.format_duration(distracted_seconds),
+            'attentiveness_score': score,
+            'longest_attentive_period': self.longest_attentive_period,
+            'longest_attentive_formatted': self.format_duration(self.longest_attentive_period),
+            'longest_distracted_period': self.longest_distracted_period,
+            'longest_distracted_formatted': self.format_duration(self.longest_distracted_period),
+            'state_breakdown': self.get_breakdown_by_state(),
+            'timeline': self.timeline,
+            'state_history': self.state_history
+        }
     
     def save_to_csv(self, filename: str = "session_history.csv"):
         """Save session summary to CSV file."""
@@ -259,8 +227,6 @@ class SessionAnalytics:
                 writer.writeheader()
             
             writer.writerow(row_data)
-        
-        print(f"✓ Session data saved to {filename}")
 
 
 class FacePresenceDetector:
@@ -606,39 +572,21 @@ class EyeGazeDetector:
         return True, self.eye_smooth
 
 
-class ProductivityMonitor:
-    """Main class that orchestrates all detection components with session analytics."""
+class ProductivityMonitorStreamlit:
+    """Main class for Streamlit integration - returns frames instead of displaying them."""
     
     def __init__(self, model_path: str = "blaze_face_short_range.tflite"):
         # Initialize detectors
         try:
             self.face_detector = FacePresenceDetector(model_path)
         except Exception as e:
-            print(f"Error initializing face detector: {e}")
-            print("Make sure 'blaze_face_short_range.tflite' is in the current directory.")
-            sys.exit(1)
+            raise Exception(f"Error initializing face detector: {e}")
         
         self.head_detector = HeadPoseDetector()
         self.eye_detector = EyeGazeDetector()
         
-        # Initialize camera
-        self.cap = cv2.VideoCapture(0)
-        if not self.cap.isOpened():
-            print("Error: Could not open camera.")
-            sys.exit(1)
-        
-        # Set camera resolution (optional)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        
-        # Logging
-        if HAS_LOG_CONFIG:
-            self.debug_log = log_config.setup_logger('microscope.log', logging.INFO)
-            self.stats_log = log_config.setup_logger('dashboard.log', logging.INFO)
-        else:
-            self.debug_log = logging.getLogger('debug')
-            self.stats_log = logging.getLogger('stats')
-            logging.basicConfig(level=logging.INFO)
+        # Camera
+        self.cap = None
         
         # Session analytics
         self.analytics = SessionAnalytics()
@@ -647,21 +595,38 @@ class ProductivityMonitor:
         self.overall_state = "AWAY"
         self.last_logged_state = None
         
-        # UI settings
-        self.show_debug_info = True
+        # Control flags
+        self.is_running = False
+        self.should_calibrate = False
+        
+        # Current frame
+        self.current_frame = None
+        self.frame_lock = threading.Lock()
+        
+        # Timeline recording interval (record every N frames)
+        self.timeline_record_interval = 30  # Record every 30 frames (~1 second at 30fps)
         self.frame_counter = 0
     
-    def log_state_change(self, new_state: str):
-        """Log state changes and update analytics."""
-        if new_state != self.last_logged_state:
-            now = datetime.now()
-            self.debug_log.info(f"Productivity state changed to {new_state} at {now}")
-            self.stats_log.info(f"Productivity state changed to {new_state} at {now}")
+    def start_camera(self):
+        """Initialize camera."""
+        if self.cap is None or not self.cap.isOpened():
+            self.cap = cv2.VideoCapture(0)
+            if not self.cap.isOpened():
+                raise Exception("Could not open camera")
             
-            # Update analytics
-            self.analytics.update_state(new_state)
-            
-            self.last_logged_state = new_state
+            # Set camera resolution
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    
+    def stop_camera(self):
+        """Release camera."""
+        if self.cap is not None:
+            self.cap.release()
+            self.cap = None
+    
+    def calibrate(self):
+        """Trigger calibration on next frame."""
+        self.should_calibrate = True
     
     def draw_status_panel(self, frame: np.ndarray, face_present: bool, head_aligned: bool, 
                          eyes_attentive: bool, yaw: Optional[float], pitch: Optional[float], 
@@ -742,49 +707,29 @@ class ProductivityMonitor:
         cv2.putText(frame, f"Score: {session_score:.1f}%", 
                    (20, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
         
-        # Instructions
-        y_offset = height - 100
-        cv2.putText(frame, "Controls:", (20, y_offset), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-        y_offset += 25
-        cv2.putText(frame, "C - Calibrate head & eyes", (20, y_offset), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-        y_offset += 20
-        cv2.putText(frame, "D - Toggle debug info", (20, y_offset), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-        y_offset += 20
-        cv2.putText(frame, "Q - Quit & Save", (20, y_offset), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-        
         # Calibration warnings
         if not self.head_detector.is_calibrated or not self.eye_detector.is_calibrated:
-            warning_y = height - 200
-            cv2.putText(frame, "⚠ PRESS 'C' TO CALIBRATE", (width // 2 - 200, warning_y), 
+            warning_y = height - 80
+            cv2.putText(frame, "⚠ CLICK CALIBRATE BUTTON", (width // 2 - 220, warning_y), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
         
         return frame
     
-    def process_frame(self, frame: np.ndarray, key: int) -> np.ndarray:
-        """Process a single frame through the detection pipeline."""
+    def process_frame(self, frame: np.ndarray) -> Tuple[np.ndarray, Dict]:
+        """Process a single frame and return annotated frame and status."""
         self.frame_counter += 1
         
-        # Handle calibration
-        if key == ord('c') or key == ord('C'):
+        # Handle calibration (triggered from Streamlit UI)
+        if self.should_calibrate:
             # Calibrate head pose
             _, yaw_temp, pitch_temp = self.head_detector.detect(frame)
             if yaw_temp is not None and pitch_temp is not None:
                 self.head_detector.calibrate(yaw_temp, pitch_temp)
-                print("✓ Head pose calibrated")
             
             # Calibrate eye gaze
-            if self.eye_detector.calibrate(frame):
-                print("✓ Eye gaze calibrated")
-            else:
-                print("✗ Eye gaze calibration failed - no face detected")
-        
-        # Toggle debug info
-        if key == ord('d') or key == ord('D'):
-            self.show_debug_info = not self.show_debug_info
+            self.eye_detector.calibrate(frame)
+            
+            self.should_calibrate = False
         
         # Step 1: Check face presence
         face_present, annotated_frame = self.face_detector.detect(frame)
@@ -816,95 +761,109 @@ class ProductivityMonitor:
         else:
             self.overall_state = "ATTENTIVE"
         
-        # Log state changes
-        self.log_state_change(self.overall_state)
+        # Update analytics
+        if self.overall_state != self.last_logged_state:
+            self.analytics.update_state(self.overall_state)
+            self.last_logged_state = self.overall_state
         
-        # Record frame for analytics
+        # Record frame
         is_attentive = (self.overall_state == "ATTENTIVE")
         self.analytics.record_frame(is_attentive)
         
+        # Record timeline point periodically
+        if self.frame_counter % self.timeline_record_interval == 0:
+            self.analytics.record_timeline_point()
+        
         # Draw status panel
-        if self.show_debug_info:
-            output_frame = self.draw_status_panel(annotated_frame, face_present, head_aligned, 
-                                                  eyes_attentive, yaw, pitch, eye_score)
-        else:
-            output_frame = annotated_frame
-            # Just show overall status
-            status_color = (0, 255, 0) if self.overall_state == "ATTENTIVE" else (0, 165, 255)
-            cv2.putText(output_frame, self.overall_state, (20, 50), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 1.5, status_color, 3)
+        output_frame = self.draw_status_panel(annotated_frame, face_present, head_aligned, 
+                                              eyes_attentive, yaw, pitch, eye_score)
         
-        return output_frame
+        # Status info for Streamlit
+        status = {
+            'state': self.overall_state,
+            'face_present': face_present,
+            'head_aligned': head_aligned,
+            'eyes_attentive': eyes_attentive,
+            'is_calibrated': self.head_detector.is_calibrated and self.eye_detector.is_calibrated,
+            'session_duration': self.analytics.get_total_duration(),
+            'attentiveness_score': self.analytics.get_attentiveness_score()
+        }
+        
+        return output_frame, status
     
-    def run(self):
-        """Main loop for the productivity monitor."""
-        print("=" * 60)
-        print("PRODUCTIVITY MONITORING SYSTEM - SESSION ANALYTICS")
-        print("=" * 60)
-        print("\nLook at the camera and press 'C' to calibrate")
-        print("Press 'Q' to quit and view session summary\n")
-        print(f"Session started at: {self.analytics.session_start.strftime('%H:%M:%S')}\n")
-        
-        try:
-            while True:
-                ret, frame = self.cap.read()
-                if not ret:
-                    print("Error: Failed to capture frame")
-                    break
-                
-                # Flip frame for mirror effect
-                frame = cv2.flip(frame, 1)
-                
-                # Get keyboard input
-                key = cv2.waitKey(1) & 0xFF
-                
-                # Process frame
-                output_frame = self.process_frame(frame, key)
-                
-                # Display
-                cv2.imshow("Productivity Monitor", output_frame)
-                
-                # Check for quit
-                if key == ord('q') or key == ord('Q'):
-                    print("\nEnding session...")
-                    break
-        
-        except KeyboardInterrupt:
-            print("\nInterrupted by user")
-        
-        finally:
-            self.end_session()
+    def is_tracking_active(self):
+        """Check if tracking is still active."""
+        return self.is_running
     
-    def end_session(self):
-        """End the session, display summary, and save data."""
-        # Finalize analytics
-        self.analytics.end_session()
-        
-        # Display summary
-        self.analytics.print_summary()
-        
-        # Save to CSV
-        try:
-            self.analytics.save_to_csv("session_history.csv")
-        except Exception as e:
-            print(f"Error saving to CSV: {e}")
-        
-        # Cleanup
-        self.cleanup()
+    def get_current_frame(self):
+        """Get the current processed frame (thread-safe)."""
+        with self.frame_lock:
+            return self.current_frame.copy() if self.current_frame is not None else None
     
-    def cleanup(self):
-        """Release resources."""
-        self.cap.release()
-        cv2.destroyAllWindows()
-        print("Resources released. Goodbye!")
-
-
-def main():
-    """Entry point for the application."""
-    # You can specify a different model path here if needed
-    monitor = ProductivityMonitor(model_path="blaze_face_short_range.tflite")
-    monitor.run()
-
-
-if __name__ == "__main__":
-    main()
+    def run_loop(self):
+        """Main processing loop (runs in background thread)."""
+        while self.is_running:
+            ret, frame = self.cap.read()
+            if not ret:
+                time.sleep(0.01)
+                continue
+            
+            # Flip frame for mirror effect
+            frame = cv2.flip(frame, 1)
+            
+            # Process frame
+            output_frame, _ = self.process_frame(frame)
+            
+            # Display in OpenCV window
+            cv2.imshow("Productivity Monitor", output_frame)
+            
+            # Check for window close or 'Q' key
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q') or key == ord('Q'):
+                self.is_running = False
+                break
+            
+            # Check if window was closed by user (clicking X)
+            if cv2.getWindowProperty("Productivity Monitor", cv2.WND_PROP_VISIBLE) < 1:
+                self.is_running = False
+                break
+            
+            # Store frame (thread-safe)
+            with self.frame_lock:
+                self.current_frame = output_frame
+            
+            # Small delay to prevent CPU overuse
+            time.sleep(0.01)
+    
+    def start_tracking(self):
+        """Start the tracking session."""
+        if not self.is_running:
+            self.start_camera()
+            self.analytics = SessionAnalytics()  # Reset analytics
+            self.is_running = True
+            
+            # Start processing in background thread
+            self.thread = threading.Thread(target=self.run_loop, daemon=True)
+            self.thread.start()
+    
+    def stop_tracking(self):
+        """Stop the tracking session."""
+        if self.is_running:
+            self.is_running = False
+            if hasattr(self, 'thread'):
+                self.thread.join(timeout=2.0)
+            
+            self.analytics.end_session()
+            
+            # Close OpenCV window
+            cv2.destroyAllWindows()
+            
+            self.stop_camera()
+    
+    def get_session_summary(self):
+        """Get session summary for display."""
+        return self.analytics.get_summary_dict()
+    
+    def save_session(self):
+        """Save session to CSV."""
+        self.analytics.save_to_csv()
