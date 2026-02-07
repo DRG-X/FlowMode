@@ -134,9 +134,9 @@ def write_summary():
     print(f"Total Time    : {format_time(total_seconds)}")
 
     print("\n--- Breakdown ---")
-    print(f"✅ Attentive   : {format_time(attentive_seconds)}")
-    print(f"❌ Distracted  : {format_time(distracted_seconds)}")
-    print(f"🚫 Away        : {format_time(away_seconds)}")
+    print(f" Attentive   : {format_time(attentive_seconds)}")
+    print(f" Distracted  : {format_time(distracted_seconds)}")
+    print(f" Away        : {format_time(away_seconds)}")
 
     print("\n--- Score ---")
     print(f"🎯 Focus %     : {focus_percent:.1f}%")
